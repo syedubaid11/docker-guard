@@ -8,6 +8,10 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Hello from TypeScript Express!');
 });
 
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
 app.post('/api/scan',(req: Request, res: Response) => {
   // we will first scan the image if it's the correct format or not only then we will proceeed , also add auth maybe in the future to this?
   res.send('Scan request received');
