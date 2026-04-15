@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -8,4 +5,28 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+model scans {
+  id               Int     @id @default(autoincrement())
+  user_id          String?
+  image_name       String?
+  risk_score       String?
+  risk_level       String?
+  total_vulns      String?
+  summary_critical Json?   @db.Json
+  summary_high_    Json?   @map("summary_high ") @db.Json
+  summary_medium_  Json?   @map("summary_medium ") @db.Json
+  summary_low_     Json?   @map("summary_low ") @db.Json
+  ai_summary_      String? @map("ai_summary ")
+  vulnerabilities_ Json?   @map("vulnerabilities ") @db.Json
+  date_created     String?
+}
+
+model users {
+  id           Int     @id @default(autoincrement())
+  name         String?
+  email        String?
+  password     String?
+  date_created String?
 }
