@@ -2,11 +2,14 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import { prisma } from './lib/prisma';
+import authRouter from './routes/auth';
 
 const app = express();
 const port = 3000;
 
 app.use(express.json());
+
+app.use('/api', authRouter);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello from TypeScript Express!');
