@@ -1,16 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { LoginBody } from '../types';
+import { SignupBody } from '../types';
 
-type LoginBody = {
-  email?: string;
-  password?: string;
-};
-
-type SignupBody = {
-  name?: string;
-  email?: string;
-  password?: string;
-};
 
 const authRouter = Router();
 
@@ -23,7 +15,7 @@ const userSelect = {
 
 authRouter.post('/login', async (req: Request, res: Response) => {
   const { email, password } = req.body as LoginBody;
-
+    
   if (!email || !password) {
     return res.status(400).json({ message: 'email and password are required' });
   }
