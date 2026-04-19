@@ -1,23 +1,43 @@
 import { Router, Request, Response } from 'express';
 import type { Image } from '../types';
+import { exec } from 'child_process';
 
 const scanRouter = Router();
+
+const TRIVY_SERVER_URL = process.env.TRIVY_SERVER_URL || 'http://localhost:4954';
 
 scanRouter.post('/', (req: Request, res: Response) => {
    const image = req.body as Partial<Image>;
 
-   if (!image.name || !image.body || typeof image.body !== 'object') {
+   if (!image.name) {
       return res.status(400).json({
-         message: 'name and body are required',
+         message: 'name is required',
       });
    }
 
-   return res.status(202).json({
-      message: 'scan request received',
-      image: {
-         name: image.name,
-      },
-      status: 'queued',
+   const command = `trivy image --server ${TRIVY_SERVER_URL} --format json ${image.name}`;
+
+   exec(command, (error, stdout, stderr) => {
+      if (error) {
+         return res.status(500).json({
+            message: 'scan failed',
+            error: stderr,
+         });
+      }
+
+      try {
+         const results = JSON.parse(stdout);
+         return res.status(200).json({
+            message: 'scan complete',
+            image: { name: image.name },
+            results,
+         });
+      } catch (e) {
+         return res.status(500).json({
+            message: 'failed to parse trivy output',
+            raw: stdout,
+         });
+      }
    });
 });
 
