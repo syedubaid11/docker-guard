@@ -9,3 +9,35 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum ScanStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model Scan {
+  id              String          @id @default(uuid())
+  image           String
+  status          ScanStatus      @default(PENDING)
+  jobId           String?         @unique
+  errorMessage    String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  vulnerabilities Vulnerability[]
+}
+
+model Vulnerability {
+  id                 String  @id @default(uuid())
+  scanId             String
+  scan               Scan    @relation(fields: [scanId], references: [id])
+  vulnerabilityId    String
+  pkgName            String
+  installedVersion   String
+  fixedVersion       String?
+  severity           String
+  title              String?
+  description        String?
+}

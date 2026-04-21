@@ -2,11 +2,15 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import { prisma } from './lib/prisma';
+import { startScanWorker } from './workers/scanWorker';
+import scanRouter from './routes/scan';
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT ?? 3000;
 
 app.use(express.json());
+
+startScanWorker();
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello from TypeScript Express!');
@@ -21,10 +25,7 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/scan', (req: Request, res: Response) => {
-  // we will first scan the image if it's the correct format or not only then we will proceeed , also add auth maybe in the future to this?
-  res.send('Scan request received');
-});
+app.use('/api/scan', scanRouter);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
