@@ -1,23 +1,4 @@
-export interface TrivyVulnerability {
-  VulnerabilityID: string;
-  PkgName: string;
-  InstalledVersion: string;
-  FixedVersion?: string;
-  Severity: string;
-  Title?: string;
-  Description?: string;
-}
-
-export interface TrivyResult {
-  Target: string;
-  Class: string;
-  Type: string;
-  Vulnerabilities?: TrivyVulnerability[];
-}
-
-interface TrivyScanResponse {
-  Results?: TrivyResult[];
-}
+import { TrivyVulnerability, TrivyResult , TrivyScanResponse } from "../types";
 
 const TRIVY_SERVER_URL = process.env.TRIVY_SERVER_URL ?? 'http://localhost:4954';
 
