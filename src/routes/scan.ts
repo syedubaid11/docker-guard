@@ -1,48 +1,44 @@
 import { Router, Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
-import { scanQueue } from '../queues/scanQueue';
+import type { Image } from '../types';
+import { exec } from 'child_process';
 
-const router = Router();
+const scanRouter = Router();
 
-// Basic Docker image reference validation: allows registry/name:tag@digest forms
-const IMAGE_REF_RE = /^[a-zA-Z0-9][a-zA-Z0-9._\-/:@]*$/;
+const TRIVY_SERVER_URL = process.env.TRIVY_SERVER_URL || 'http://localhost:4954';
 
-router.post('/', async (req: Request, res: Response) => {
-  const { image } = req.body as { image?: string };
+scanRouter.post('/', (req: Request, res: Response) => {
+   const image = req.body as Partial<Image>;
 
-  if (!image || !IMAGE_REF_RE.test(image)) {
-    res.status(400).json({ error: 'Invalid or missing image reference' });
-    return;
-  }
+   if (!image.name) {
+      return res.status(400).json({
+         message: 'name is required',
+      });
+   }
 
-  const scan = await prisma.scan.create({
-    data: { image, status: 'PENDING' },
-  });
+   const command = `trivy image --server ${TRIVY_SERVER_URL} --format json ${image.name}`;
 
-  const job = await scanQueue.add('scan', { scanId: scan.id, image });
+   exec(command, (error, stdout, stderr) => {
+      if (error) {
+         return res.status(500).json({
+            message: 'scan failed',
+            error: stderr,
+         });
+      }
 
-  await prisma.scan.update({
-    where: { id: scan.id },
-    data: { jobId: job.id! },
-  });
-
-  res.status(202).json({ scanId: scan.id, jobId: job.id, status: 'PENDING' });
+      try {
+         const results = JSON.parse(stdout);
+         return res.status(200).json({
+            message: 'scan complete',
+            image: { name: image.name },
+            results,
+         });
+      } catch (e) {
+         return res.status(500).json({
+            message: 'failed to parse trivy output',
+            raw: stdout,
+         });
+      }
+   });
 });
 
-router.get('/:scanId', async (req: Request, res: Response) => {
-  const scanId = req.params['scanId'] as string;
-
-  const scan = await prisma.scan.findUnique({
-    where: { id: scanId },
-    include: { vulnerabilities: true },
-  });
-
-  if (!scan) {
-    res.status(404).json({ error: 'Scan not found' });
-    return;
-  }
-
-  res.json(scan);
-});
-
-export default router;
+export default scanRouter;

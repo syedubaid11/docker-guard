@@ -2,7 +2,11 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import { prisma } from './lib/prisma';
+<<<<<<< HEAD
 import { startScanWorker } from './workers/scanWorker';
+=======
+import authRouter from './routes/auth';
+>>>>>>> 7dea226a9f9efe8c3b8b9d6c74531514f3af2540
 import scanRouter from './routes/scan';
 
 const app = express();
@@ -10,7 +14,8 @@ const port = process.env.PORT ?? 3000;
 
 app.use(express.json());
 
-startScanWorker();
+app.use('/api', authRouter);
+app.use('/api/scan', scanRouter);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello from TypeScript Express!');
@@ -24,8 +29,6 @@ app.get('/health', async (req: Request, res: Response) => {
     res.status(503).json({ status: 'error', uptime: process.uptime(), db: 'unreachable' });
   }
 });
-
-app.use('/api/scan', scanRouter);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
