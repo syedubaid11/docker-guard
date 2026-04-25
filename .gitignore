@@ -3,3 +3,4 @@
 /.env   
 /src/generated/prisma
 .claude/worktrees/
+.claude/
