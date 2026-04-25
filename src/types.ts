@@ -23,3 +23,27 @@ declare global {
     }
   }
 }
+
+
+//////////// ------------ TRIVY ---------------- //////////////////////////////
+
+export interface TrivyVulnerability {
+  VulnerabilityID: string;
+  PkgName: string;
+  InstalledVersion: string;
+  FixedVersion?: string;
+  Severity: string;
+  Title?: string;
+  Description?: string;
+}
+
+export interface TrivyResult {
+  Target: string;
+  Class: string;
+  Type: string;
+  Vulnerabilities?: TrivyVulnerability[];
+}
+
+export interface TrivyScanResponse {
+  Results?: TrivyResult[];
+}
