@@ -2,11 +2,15 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import { prisma } from './lib/prisma';
+<<<<<<< HEAD
+import { startScanWorker } from './workers/scanWorker';
+=======
 import authRouter from './routes/auth';
+>>>>>>> 7dea226a9f9efe8c3b8b9d6c74531514f3af2540
 import scanRouter from './routes/scan';
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT ?? 3000;
 
 app.use(express.json());
 

@@ -1,3 +1,8 @@
+export interface ScanJobData {
+  scanId: string;
+  image: string;
+}
+
 export type LoginBody = {
   email?: string;
   password?: string;
