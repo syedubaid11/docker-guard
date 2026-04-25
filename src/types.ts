@@ -1,3 +1,5 @@
+import type { AuthPayload } from './middleware/auth';
+
 export interface ScanJobData {
   scanId: string;
   image: string;
@@ -14,7 +16,10 @@ export type SignupBody = {
   password?: string;
 };
 
-export type Image = {
-    body: object;
-    name: string;
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthPayload;
+    }
+  }
 }

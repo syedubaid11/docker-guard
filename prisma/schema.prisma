@@ -23,42 +23,38 @@ model Scan {
   startedAt       DateTime?
   completedAt     DateTime?
   createdAt       DateTime        @default(now())
+
+  userId          Int?
+  user            users?          @relation(fields: [userId], references: [id])
+
   vulnerabilities Vulnerability[]
+
+  @@index([userId])
+  @@index([status])
 }
 
 model Vulnerability {
-  id                 String  @id @default(uuid())
-  scanId             String
-  scan               Scan    @relation(fields: [scanId], references: [id])
-  vulnerabilityId    String
-  pkgName            String
-  installedVersion   String
-  fixedVersion       String?
-  severity           String
-  title              String?
-  description        String?
-}
+  id               String  @id @default(uuid())
+  scanId           String
+  scan             Scan    @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  vulnerabilityId  String
+  pkgName          String
+  installedVersion String
+  fixedVersion     String?
+  severity         String
+  title            String?
+  description      String?
 
-model scans {
-  id               Int     @id @default(autoincrement())
-  user_id          String?
-  image_name       String?
-  risk_score       String?
-  risk_level       String?
-  total_vulns      String?
-  summary_critical Json?   @db.Json
-  summary_high_    Json?   @map("summary_high ") @db.Json
-  summary_medium_  Json?   @map("summary_medium ") @db.Json
-  summary_low_     Json?   @map("summary_low ") @db.Json
-  ai_summary_      String? @map("ai_summary ")
-  vulnerabilities_ Json?   @map("vulnerabilities ") @db.Json
-  date_created     String?
+  @@index([scanId])
+  @@index([severity])
 }
 
 model users {
   id           Int     @id @default(autoincrement())
   name         String?
-  email        String?
+  email        String? @unique
   password     String?
   date_created String?
+
+  scans        Scan[]
 }
