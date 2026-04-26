@@ -37,9 +37,10 @@ scanRouter.post('/', async (req: Request, res: Response) => {
 
 // Poll a single scan — only the owner can read it.
 scanRouter.get('/:scanId', async (req: Request, res: Response) => {
+  const scanId = String(req.params.scanId);
   try {
     const scan = await prisma.scan.findUnique({
-      where: { id: req.params.scanId },
+      where: { id: scanId },
       include: { vulnerabilities: true },
     });
 

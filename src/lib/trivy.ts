@@ -1,28 +1,30 @@
-import { TrivyVulnerability, TrivyResult , TrivyScanResponse } from "../types";
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import type { TrivyResult, TrivyScanResponse } from '../types';
+
+const execFileP = promisify(execFile);
 
 const TRIVY_SERVER_URL = process.env.TRIVY_SERVER_URL ?? 'http://localhost:4954';
+const TRIVY_BIN = process.env.TRIVY_BIN ?? 'trivy';
 
-// Calls the Trivy server Twirp JSON API.
-// Start the server with: trivy server --listen 0.0.0.0:4954
+// Runs the Trivy CLI in client/server mode against the running Trivy server.
+// `execFile` passes args as an array (no shell), so the image string is safe
+// from command injection.
 export async function scanImage(image: string): Promise<TrivyResult[]> {
-  const response = await fetch(
-    `${TRIVY_SERVER_URL}/twirp/trivy.scanner.v1.Scanner/Scan`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        target: image,
-        artifact_type: 'ARTIFACT_TYPE_CONTAINER_IMAGE',
-        options: {},
-      }),
-    }
-  );
+  const args = [
+    'image',
+    '--server', TRIVY_SERVER_URL,
+    '--format', 'json',
+    '--quiet',
+    '--scanners', 'vuln',
+    image,
+  ];
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Trivy server responded ${response.status}: ${text}`);
-  }
+  const { stdout } = await execFileP(TRIVY_BIN, args, {
+    maxBuffer: 50 * 1024 * 1024, // 50 MB — Trivy JSON can be big
+    timeout: 5 * 60 * 1000,      // 5 min
+  });
 
-  const data = (await response.json()) as TrivyScanResponse;
+  const data = JSON.parse(stdout) as TrivyScanResponse;
   return data.Results ?? [];
 }
