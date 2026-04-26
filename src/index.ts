@@ -1,6 +1,7 @@
 // src/index.ts
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
+import cors from 'cors';
 import { prisma } from './lib/prisma';
 import { startScanWorker } from './workers/scanWorker';
 import authRouter from './routes/auth';
@@ -9,6 +10,7 @@ import scanRouter from './routes/scan';
 const app = express();
 const port = process.env.PORT ?? 3000;
 
+app.use(cors({ origin: process.env.FRONTEND_URL ?? '*' }));
 app.use(express.json());
 
 app.use('/api', authRouter);
