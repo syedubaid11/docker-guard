@@ -1,7 +1,14 @@
-pandas
-scikit-learn>=1.4
-xgboost>=2.0
-shap
-matplotlib
-fastapi
-uvicorn
+# Exact versions: out/model.joblib only loads reliably with the versions it was trained with.
+# If you change any of these, retrain (python train.py).
+numpy==2.5.5
+scipy==1.18.1
+pandas==3.1.1
+scikit-learn==1.9.1
+xgboost==3.4.1
+joblib==1.6.0
+fastapi==0.163.1
+pydantic==2.14.3
+uvicorn==0.54.0
+# training only (train.py)
+shap==0.54.1
+matplotlib==3.11.2
