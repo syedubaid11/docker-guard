@@ -2,5 +2,9 @@
 /dist
 /.env   
 /src/generated/prisma
+/ai-engine/data
+/ai-engine/.venv
+/ai-engine/train.log
+__pycache__/
 .claude/worktrees/
 .claude/

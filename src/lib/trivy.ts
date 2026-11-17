@@ -1,6 +1,12 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import type { TrivyResult, TrivyScanResponse } from '../types';
+import type { TrivyResult, TrivyScanResponse, TrivyVulnerability } from '../types';
+
+// Prefer NVD's CVSS (the ML model is trained on NVD data); otherwise any source that has a v3 vector.
+export function pickCvss(v: TrivyVulnerability) {
+  const cvss = v.CVSS ?? {};
+  return cvss.nvd?.V3Vector ? cvss.nvd : Object.values(cvss).find((c) => c.V3Vector);
+}
 
 const execFileP = promisify(execFile);
 

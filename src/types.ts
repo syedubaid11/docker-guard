@@ -35,6 +35,10 @@ export interface TrivyVulnerability {
   Severity: string;
   Title?: string;
   Description?: string;
+  // Keyed by data source ("nvd", "redhat", "ghsa", ...).
+  CVSS?: Record<string, { V3Vector?: string; V3Score?: number }>;
+  CweIDs?: string[];
+  PublishedDate?: string;
 }
 
 export interface TrivyResult {

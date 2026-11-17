@@ -45,6 +45,16 @@ model Vulnerability {
   title            String?
   description      String?
 
+  // Inputs for the ML risk model (ai-engine/). Null on scans made before these existed.
+  cvssVector       String?
+  cvssScore        Float?
+  cweIds           String[]
+  publishedDate    DateTime?
+
+  // Output of the ML risk model: chance (0-1) of being exploited, and the top reasons (from SHAP).
+  riskScore        Float?
+  riskReasons      String[]
+
   @@index([scanId])
   @@index([severity])
 }

@@ -1,0 +1,6 @@
+model,accuracy,precision,recall,f1,pr_auc,caught_top1%,caught_top5%
+CVSS >= 9 (baseline),0.8831,0.0096,0.5145,0.0189,0.0112,0.1087,0.3261
+"EPSS >= 0.1 (today's scores, hindsight)",0.9985,0.717,0.5507,0.623,0.5917,0.7029,0.8768
+Logistic Regression,0.8927,0.01,0.4928,0.0197,0.0303,0.1522,0.3478
+Random Forest,0.9918,0.0128,0.0362,0.0189,0.0186,0.058,0.2029
+XGBoost,0.8977,0.0114,0.5362,0.0224,0.039,0.1812,0.3478

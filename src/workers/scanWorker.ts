@@ -1,7 +1,8 @@
 import { Worker } from 'bullmq';
 import { redis } from '../lib/redis';
 import { prisma } from '../lib/prisma';
-import { scanImage } from '../lib/trivy';
+import { pickCvss, scanImage } from '../lib/trivy';
+import { predictRisk } from '../lib/aiEngine';
 import type { ScanJobData } from '../types';
 
 export function startScanWorker() {
@@ -19,6 +20,10 @@ export function startScanWorker() {
 
       const vulnerabilities = results.flatMap((result) =>
         (result.Vulnerabilities ?? []).map((v) => ({
+          cvssVector: pickCvss(v)?.V3Vector ?? null,
+          cvssScore: pickCvss(v)?.V3Score ?? null,
+          cweIds: v.CweIDs ?? [],
+          publishedDate: v.PublishedDate ? new Date(v.PublishedDate) : null,
           scanId,
           vulnerabilityId: v.VulnerabilityID,
           pkgName: v.PkgName,
@@ -30,8 +35,16 @@ export function startScanWorker() {
         }))
       );
 
+      const risks = await predictRisk(vulnerabilities);
+
       await prisma.$transaction([
-        prisma.vulnerability.createMany({ data: vulnerabilities }),
+        prisma.vulnerability.createMany({
+          data: vulnerabilities.map((v, i) => ({
+            ...v,
+            riskScore: risks[i]?.risk ?? null,
+            riskReasons: risks[i]?.reasons ?? [],
+          })),
+        }),
         prisma.scan.update({
           where: { id: scanId },
           data: { status: 'DONE', completedAt: new Date() },
@@ -40,7 +53,8 @@ export function startScanWorker() {
     },
     {
       connection: redis,
-      concurrency: 3, // max concurrent Trivy scans
+      // Max Trivy scans at once. Set SCAN_CONCURRENCY=1 on small servers (each scan can use hundreds of MB).
+      concurrency: Number(process.env.SCAN_CONCURRENCY) || 3,
     }
   );
 

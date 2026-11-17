@@ -41,7 +41,8 @@ scanRouter.get('/:scanId', async (req: Request, res: Response) => {
   try {
     const scan = await prisma.scan.findUnique({
       where: { id: scanId },
-      include: { vulnerabilities: true },
+      // "Fix First" order: highest exploit risk first; unscored ones (no CVSS vector) last.
+      include: { vulnerabilities: { orderBy: { riskScore: { sort: 'desc', nulls: 'last' } } } },
     });
 
     if (!scan) return res.status(404).json({ message: 'scan not found' });
