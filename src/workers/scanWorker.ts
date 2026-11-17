@@ -53,7 +53,8 @@ export function startScanWorker() {
     },
     {
       connection: redis,
-      concurrency: 3, // max concurrent Trivy scans
+      // Max Trivy scans at once. Set SCAN_CONCURRENCY=1 on small servers (each scan can use hundreds of MB).
+      concurrency: Number(process.env.SCAN_CONCURRENCY) || 3,
     }
   );
 
