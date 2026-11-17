@@ -1,0 +1,37 @@
+# Runs the whole backend on one server: docker compose up -d --build
+# Needs a .env next to this file with DATABASE_URL, DIRECT_URL, JWT_SECRET and FRONTEND_URL (see .env.sample).
+services:
+  api:
+    build: .
+    env_file: .env
+    environment:
+      # Services reach each other by name inside Docker; these override any localhost values in .env.
+      REDIS_URL: redis://redis:6379
+      TRIVY_SERVER_URL: http://trivy:4954
+      AI_ENGINE_URL: http://ai-engine:8000
+      # One scan at a time: sized for a 1 GB server. Raise it on a bigger machine.
+      SCAN_CONCURRENCY: 1
+    ports:
+      - "3000:3000"
+    depends_on: [redis, trivy, ai-engine]
+    restart: unless-stopped
+
+  # Not published to the host: only the api service can reach it.
+  ai-engine:
+    build: ./ai-engine
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  trivy:
+    # Same tag as the trivy binary copied in ./Dockerfile.
+    image: aquasec/trivy:0.58.1
+    command: ["server", "--listen", "0.0.0.0:4954"]
+    volumes:
+      - trivy-cache:/root/.cache/trivy  # keeps the vulnerability database between restarts
+    restart: unless-stopped
+
+volumes:
+  trivy-cache:
