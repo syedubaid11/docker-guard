@@ -1,6 +1,8 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
+  // tsc compiles this project to CommonJS; without this, `npm start` (node dist/index.js) crashes.
+  moduleFormat = "cjs"
 }
 
 datasource db {
