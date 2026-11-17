@@ -96,7 +96,15 @@ def score_row(name, y_true, score, predicted):
         "f1": f1_score(y_true, predicted),
         # PR-AUC judges the ranking itself (no cut-off needed); the key number when under 1% of rows are positive.
         "pr_auc": average_precision_score(y_true, score),
+        # "Fix First" view: share of all exploited CVEs that land in the top 1% / 5% of the ranking.
+        "caught_top1%": top_share(y_true, score, 0.01),
+        "caught_top5%": top_share(y_true, score, 0.05),
     }
+
+
+def top_share(y_true, score, fraction):
+    top = pd.Series(score, index=y_true.index).nlargest(int(len(y_true) * fraction)).index
+    return y_true.loc[top].sum() / y_true.sum()
 
 
 def main():
@@ -152,11 +160,13 @@ def main():
         ),
     }
 
+    # Today's EPSS scores already reflect attacks seen after each CVE came out, which our model
+    # cannot see. So EPSS here is an upper reference with hindsight, not a fair head-to-head baseline.
     epss = pd.read_csv(fetch(EPSS, "epss.csv.gz"), comment="#").set_index("cve")["epss"]
     test_epss = test["id"].map(epss).fillna(0)
     results = [
         score_row("CVSS >= 9 (baseline)", y_test, test["cvss_score"], test["cvss_score"] >= 9),
-        score_row("EPSS >= 0.1 (baseline)", y_test, test_epss, test_epss >= 0.1),
+        score_row("EPSS >= 0.1 (today's scores, hindsight)", y_test, test_epss, test_epss >= 0.1),
     ]
     for name, model in models.items():
         print("training", name)
