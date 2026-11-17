@@ -12,7 +12,8 @@ services:
       # One scan at a time: sized for a 1 GB server. Raise it on a bigger machine.
       SCAN_CONCURRENCY: 1
     ports:
-      - "3000:3000"
+      # Only reachable from the server itself; nginx on the host serves it publicly over HTTPS.
+      - "127.0.0.1:3000:3000"
     depends_on: [redis, trivy, ai-engine]
     restart: unless-stopped
 

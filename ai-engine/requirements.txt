@@ -4,7 +4,7 @@ numpy==2.5.5
 scipy==1.18.1
 pandas==3.1.1
 scikit-learn==1.9.1
-xgboost==3.4.1
+xgboost-cpu==3.4.1  # CPU-only build: same model, without the unused 200 MB NVIDIA GPU library
 joblib==1.6.0
 fastapi==0.163.1
 pydantic==2.14.3
