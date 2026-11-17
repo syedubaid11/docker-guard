@@ -51,6 +51,10 @@ model Vulnerability {
   cweIds           String[]
   publishedDate    DateTime?
 
+  // Output of the ML risk model: chance (0-1) of being exploited, and the top reasons (from SHAP).
+  riskScore        Float?
+  riskReasons      String[]
+
   @@index([scanId])
   @@index([severity])
 }

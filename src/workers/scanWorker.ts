@@ -2,6 +2,7 @@ import { Worker } from 'bullmq';
 import { redis } from '../lib/redis';
 import { prisma } from '../lib/prisma';
 import { pickCvss, scanImage } from '../lib/trivy';
+import { predictRisk } from '../lib/aiEngine';
 import type { ScanJobData } from '../types';
 
 export function startScanWorker() {
@@ -34,8 +35,16 @@ export function startScanWorker() {
         }))
       );
 
+      const risks = await predictRisk(vulnerabilities);
+
       await prisma.$transaction([
-        prisma.vulnerability.createMany({ data: vulnerabilities }),
+        prisma.vulnerability.createMany({
+          data: vulnerabilities.map((v, i) => ({
+            ...v,
+            riskScore: risks[i]?.risk ?? null,
+            riskReasons: risks[i]?.reasons ?? [],
+          })),
+        }),
         prisma.scan.update({
           where: { id: scanId },
           data: { status: 'DONE', completedAt: new Date() },
