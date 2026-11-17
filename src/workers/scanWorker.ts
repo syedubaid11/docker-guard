@@ -1,7 +1,7 @@
 import { Worker } from 'bullmq';
 import { redis } from '../lib/redis';
 import { prisma } from '../lib/prisma';
-import { scanImage } from '../lib/trivy';
+import { pickCvss, scanImage } from '../lib/trivy';
 import type { ScanJobData } from '../types';
 
 export function startScanWorker() {
@@ -19,6 +19,10 @@ export function startScanWorker() {
 
       const vulnerabilities = results.flatMap((result) =>
         (result.Vulnerabilities ?? []).map((v) => ({
+          cvssVector: pickCvss(v)?.V3Vector ?? null,
+          cvssScore: pickCvss(v)?.V3Score ?? null,
+          cweIds: v.CweIDs ?? [],
+          publishedDate: v.PublishedDate ? new Date(v.PublishedDate) : null,
           scanId,
           vulnerabilityId: v.VulnerabilityID,
           pkgName: v.PkgName,
