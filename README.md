@@ -45,7 +45,7 @@ flowchart LR
 **Who can talk to whom:**
 
 - The **website only talks to the API**. It never touches Redis, Trivy, the AI engine or the database directly.
-- **Redis, Trivy and the AI engine are private.** Only port 3000 (the API) is open to the outside. Inside the server they find each other by name (`redis`, `trivy`, `ai-engine`).
+- **Redis, Trivy and the AI engine are private.** Only the API is reachable from outside, and only through nginx over HTTPS (port 3000 itself is bound to the server's localhost). Inside the server they find each other by name (`redis`, `trivy`, `ai-engine`).
 - The **database is outside the server**, hosted by Neon. Only the API connects to it.
 
 ---
@@ -177,6 +177,60 @@ erDiagram
 | GET | `/api/scan` | Yes | Your last 50 scans |
 | GET | `/api/scan/:scanId` | Yes | One scan with its holes, riskiest first |
 | GET | `/health` | No | Is the API up and can it reach the database? |
+
+---
+
+## The AI engine: a second server on the same machine
+
+The AI engine is **its own small server**, separate from the API, but it runs **on the same machine** (as the `ai-engine` container next to `api`). It is not a separate computer.
+
+**Why it is separate:** the API is Node.js, but the model and its libraries (XGBoost, scikit-learn, SHAP) are Python. Node can't load a Python model, so the model runs in a small Python web server (FastAPI) and the API calls it over HTTP. Later AI features (attack-type classifier, chatbot, auto-fix) will be added to this same Python server as new endpoints.
+
+### Its one endpoint: `POST /predict`
+
+This endpoint is **internal**. The website never calls it, and it can't be reached from the internet. Only the API's worker calls it.
+
+| | |
+|---|---|
+| Where it runs | [ai-engine/api.py](ai-engine/api.py), started with `uvicorn api:app --port 8000` |
+| Who calls it | `predictRisk()` in [src/lib/aiEngine.ts](src/lib/aiEngine.ts), called by the worker in [src/workers/scanWorker.ts](src/workers/scanWorker.ts) right after Trivy finishes |
+| How the API finds it | The `AI_ENGINE_URL` setting: `http://ai-engine:8000` inside docker compose, `http://localhost:8000` when running locally |
+| What model it uses | `ai-engine/out/model.joblib`, trained once by [ai-engine/train.py](ai-engine/train.py) on about 3 lakh public CVEs (NVD) labelled with CISA's list of actually-attacked ones (KEV). Training is not done on the server. |
+
+### Where its input comes from
+
+```mermaid
+flowchart LR
+    T["Trivy scan result"] -- "CVE id, CVSS vector + score,<br/>CWE ids, publish date, description" --> W["Worker<br/>(scanWorker.ts)"]
+    W -- "only holes that have a CVSS v3 vector" --> P["predictRisk()<br/>(aiEngine.ts)"]
+    P -- "POST /predict" --> AI["AI engine<br/>(api.py)"]
+    AI -- "risk 0–1 + up to 3 reasons" --> P
+    P --> W
+    W -- "riskScore, riskReasons" --> DB[("Database")]
+```
+
+1. **Trivy** reports each hole with its details. `pickCvss()` in [src/lib/trivy.ts](src/lib/trivy.ts) picks the CVSS data (NVD's if available, since the model was trained on NVD).
+2. **The worker** saves those details on each vulnerability and passes them to `predictRisk()`.
+3. **`predictRisk()`** sends only the holes that have a CVSS v3 vector, all in one request, and puts the answers back in the right order.
+4. **The AI engine** turns each hole into model inputs ([ai-engine/features.py](ai-engine/features.py)), the model gives the risk, and SHAP picks the reasons.
+5. **The worker** saves `riskScore` and `riskReasons` in the database. The website reads them through `GET /api/scan/:scanId`.
+
+Request and response:
+
+```json
+// request: a list of holes
+[{ "id": "CVE-2021-44228",
+   "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+   "score": 10, "cwes": ["CWE-502"],
+   "published": "2021-12-10T10:15:00Z",
+   "description": "Apache Log4j2 ... remote code execution ..." }]
+
+// response: one answer per hole, same order
+[{ "id": "CVE-2021-44228", "risk": 0.87,
+   "reasons": ["CVSS score of 10.0", "Description mentions \"remote\"", "Can leak sensitive data"] }]
+```
+
+To try it by hand, run the AI engine locally and open `http://localhost:8000/docs`.
 
 ---
 
